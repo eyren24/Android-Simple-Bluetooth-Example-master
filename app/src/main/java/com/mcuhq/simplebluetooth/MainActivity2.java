@@ -1,16 +1,20 @@
 package com.mcuhq.simplebluetooth;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,25 +37,34 @@ public class MainActivity2 extends AppCompatActivity {
     public Handler mHandler;
     private TextView mReadBuffer;
     private TextView mBluetoothStatus;
-    private CheckBox mLED1;
 
+    public MainActivity mainActivity = new MainActivity();
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getSupportActionBar().hide();
         setContentView(R.layout.activity_main2);
-        mLED1 = (CheckBox)findViewById(R.id.checkbox_led_1);
+        Button mDisconnect = (Button) findViewById(R.id.disconnectBtn);
+        Button mAvanti = (Button) findViewById(R.id.avanti);
+        Button mIndietro = (Button) findViewById(R.id.indietro);
+        Button mSinistra = (Button) findViewById(R.id.sinistra);
+        Button mDestra = (Button) findViewById(R.id.destra);
         mBluetoothStatus = (TextView)findViewById(R.id.bluetooth_status);
         mReadBuffer = (TextView) findViewById(R.id.read_buffer);
         mBTAdapter = BluetoothAdapter.getDefaultAdapter(); // get a handle on the bluetooth radio
         String info = MainActivity.getInfoDevice();
         final String address = info.substring(info.length() - 17);
         final String name = info.substring(0,info.length() - 17);
-
         // Legge i messaggi in arrivo
         mHandler = new Handler(Looper.getMainLooper()){
+            @SuppressLint("SetTextI18n")
             @Override
             public void handleMessage(Message msg){
                 if(msg.what == MESSAGE_READ){
+
                     String readMessage = null;
                     try {
                         readMessage = new String((byte[]) msg.obj, "UTF-8");
@@ -62,10 +75,11 @@ public class MainActivity2 extends AppCompatActivity {
                 }
 
                 if(msg.what == CONNECTING_STATUS){
-                    /*if(msg.arg1 == 1)
+                    if(msg.arg1 == 1)
                         mBluetoothStatus.setText("Connected to Device: " + msg.obj);
                     else
-                        mBluetoothStatus.setText("Connection Failed");*/
+                        mBluetoothStatus.setText("Connection Failed");
+                        //mainActivity.switchActivitiesWithData(MainActivity.class);
                 }
             }
         };
@@ -84,6 +98,7 @@ public class MainActivity2 extends AppCompatActivity {
                 } catch (IOException e) {
                     fail = true;
                     Toast.makeText(getBaseContext(), "Socket creation failed", Toast.LENGTH_SHORT).show();
+
                 }
                 // Establish the Bluetooth socket connection.
                 try {
@@ -97,6 +112,7 @@ public class MainActivity2 extends AppCompatActivity {
                     } catch (IOException e2) {
                         //insert code to deal with this
                         Toast.makeText(getBaseContext(), "Socket creation failed", Toast.LENGTH_SHORT).show();
+
                     }
                 }
                 if(!fail) {
@@ -109,18 +125,138 @@ public class MainActivity2 extends AppCompatActivity {
             }
         }.start();
 
+        mDisconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mConnectedThread.cancel();
+                switchActivitiesWithData();
+            }
+        });
 
-            mLED1.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if(mConnectedThread != null) //First check to make sure thread created
-                        mConnectedThread.write("1");
+        mAvanti.setOnTouchListener(new View.OnTouchListener() {
+
+            private Handler mHandler;
+
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mAvanti.setRotationX(20F);
+                        if (mHandler != null) return true;
+                        mHandler = new Handler();
+                        mHandler.postDelayed(mAction, 100);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        mAvanti.setRotationX(0F);
+                        if (mHandler == null) return true;
+                        mHandler.removeCallbacks(mAction);
+                        mHandler = null;
+                        break;
                 }
-            });
+                return false;
+            }
 
+            final Runnable mAction = new Runnable() {
+                @Override public void run() {
+                    mConnectedThread.write("w");
+                    mHandler.postDelayed(this, 100);
+                }
+            };
+
+        });
+
+        mIndietro.setOnTouchListener(new View.OnTouchListener() {
+
+            private Handler mHandler;
+
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mIndietro.setRotationX(-20F);
+                        if (mHandler != null) return true;
+                        mHandler = new Handler();
+                        mHandler.postDelayed(mAction, 100);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        mIndietro.setRotationX(0F);
+                        if (mHandler == null) return true;
+                        mHandler.removeCallbacks(mAction);
+                        mHandler = null;
+                        break;
+                }
+                return false;
+            }
+
+            final Runnable mAction = new Runnable() {
+                @Override public void run() {
+                    mConnectedThread.write("s");
+                    mHandler.postDelayed(this, 100);
+                }
+            };
+
+        });
+        mSinistra.setOnTouchListener(new View.OnTouchListener() {
+
+            private Handler mHandler;
+
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (mHandler != null) return true;
+                        mHandler = new Handler();
+                        mHandler.postDelayed(mAction, 100);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (mHandler == null) return true;
+                        mHandler.removeCallbacks(mAction);
+                        mHandler = null;
+                        break;
+                }
+                return false;
+            }
+
+            final Runnable mAction = new Runnable() {
+                @Override public void run() {
+                    mConnectedThread.write("a");
+                    mHandler.postDelayed(this, 100);
+                }
+            };
+
+        });
+
+        mDestra.setOnTouchListener(new View.OnTouchListener() {
+
+            private Handler mHandler;
+
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (mHandler != null) return true;
+                        mHandler = new Handler();
+                        mHandler.postDelayed(mAction, 100);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (mHandler == null) return true;
+                        mHandler.removeCallbacks(mAction);
+                        mHandler = null;
+                        break;
+                }
+                return false;
+            }
+
+            final Runnable mAction = new Runnable() {
+                @Override public void run() {
+                    mConnectedThread.write("d");
+                    mHandler.postDelayed(this, 100);
+                }
+            };
+
+        });
     }
 
-
+    public void switchActivitiesWithData() {
+        Intent switchActivityIntent = new Intent(this, MainActivity.class);
+        startActivity(switchActivityIntent);
+    }
 
     private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException {
         try {
