@@ -15,6 +15,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -53,7 +55,14 @@ public class MainActivity2 extends AppCompatActivity {
         Button mSinistra = (Button) findViewById(R.id.sinistra);
         Button mDestra = (Button) findViewById(R.id.destra);
         mBluetoothStatus = (TextView)findViewById(R.id.bluetooth_status);
-        mReadBuffer = (TextView) findViewById(R.id.read_buffer);
+        mReadBuffer = (TextView) findViewById(R.id.read_buffer_motore);
+        TextView mReaderEnergia = (TextView) findViewById(R.id.read_buffer_energia);
+        TextView mVelocitaMotoreValue = (TextView) findViewById(R.id.velocitaMotoreValue);
+        TextView mBatteria1 = (TextView) findViewById(R.id.read_buffer_batteria_1);
+        TextView mBatteria2 = (TextView) findViewById(R.id.read_buffer_batteria_2);
+        TextView mPIstantanea = (TextView) findViewById(R.id.read_buffer_p_istantanea);
+        SeekBar mVelocitaMotore = (SeekBar) findViewById(R.id.velocitaMotore);
+        ImageView mBussola = findViewById(R.id.bussola);
         mBTAdapter = BluetoothAdapter.getDefaultAdapter(); // get a handle on the bluetooth radio
         String info = MainActivity.getInfoDevice();
         final String address = info.substring(info.length() - 17);
@@ -64,14 +73,34 @@ public class MainActivity2 extends AppCompatActivity {
             @Override
             public void handleMessage(Message msg){
                 if(msg.what == MESSAGE_READ){
-
                     String readMessage = null;
                     try {
                         readMessage = new String((byte[]) msg.obj, "UTF-8");
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                    mReadBuffer.setText(readMessage);
+                    String prefix = readMessage.substring(0, readMessage.indexOf(' '));
+                    String value = readMessage.substring(readMessage.indexOf(' '));
+                    System.out.println(prefix + " " + value);
+                    if(prefix.equalsIgnoreCase("motore")){
+                        mReadBuffer.setText(value);
+                    }
+                    if(prefix.equalsIgnoreCase("energia")){
+                        mReaderEnergia.setText(value);
+                    }
+                    if(prefix.equalsIgnoreCase("bussola")){
+                        float getValue = Float.parseFloat(value);
+                        mBussola.setRotation(getValue);
+                    }
+                    if(prefix.equalsIgnoreCase("batteria1")){
+                        mBatteria1.setText(value);
+                    }
+                    if(prefix.equalsIgnoreCase("batteria2")){
+                        mBatteria2.setText(value);
+                    }
+                    if(prefix.equalsIgnoreCase("pIstantanea")){
+                        mPIstantanea.setText(value);
+                    }
                 }
 
                 if(msg.what == CONNECTING_STATUS){
@@ -133,10 +162,28 @@ public class MainActivity2 extends AppCompatActivity {
             }
         });
 
+        mVelocitaMotore.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            String progressChangedValue = null;
+
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                progressChangedValue = Integer.toString(progress);
+                mVelocitaMotoreValue.setText(progressChangedValue);
+            }
+
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // TODO Auto-generated method stub
+            }
+
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                mVelocitaMotoreValue.setText(progressChangedValue);
+                if (progressChangedValue.equals("0")){
+                    mVelocitaMotoreValue.setText("Motore Spento!");
+                }
+            }
+        });
+
         mAvanti.setOnTouchListener(new View.OnTouchListener() {
-
             private Handler mHandler;
-
             @Override public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
